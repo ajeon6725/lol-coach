@@ -1,9 +1,14 @@
-const axios = require("axios");
+import axios from "axios";
+import { RiotMatchData, RegionConfig, PlatformRegion } from "./types";
 
 const RIOT_API_KEY = process.env.RIOT_API_KEY;
 
+if (!RIOT_API_KEY) {
+  throw new Error("RIOT_API_KEY environment variable is required");
+}
+
 // Regional routing mapping
-const REGION_MAPPINGS = {
+const REGION_MAPPINGS: Record<PlatformRegion, RegionConfig> = {
   // Platform routes (what users select)
   na: { account: "americas", match: "americas" },
   br: { account: "americas", match: "americas" },
@@ -18,7 +23,7 @@ const REGION_MAPPINGS = {
   kr: { account: "asia", match: "asia" },
   jp: { account: "asia", match: "asia" },
   
-  oce: { account: "asia", match: "sea" },  // i.e. OCE uses asia for account, sea for matches
+  oce: { account: "asia", match: "sea" },
   ph: { account: "asia", match: "sea" },
   sg: { account: "asia", match: "sea" },
   th: { account: "asia", match: "sea" },
@@ -26,8 +31,18 @@ const REGION_MAPPINGS = {
   vn: { account: "asia", match: "sea" },
 };
 
-async function getMatchData(gameName, tagLine, platformRegion = "oce") {
-  const region = REGION_MAPPINGS[platformRegion.toLowerCase()];
+interface RiotAccount {
+  puuid: string;
+  gameName: string;
+  tagLine: string;
+}
+
+export async function getMatchData(
+  gameName: string,
+  tagLine: string,
+  platformRegion: PlatformRegion = "oce"
+): Promise<RiotMatchData> {
+  const region = REGION_MAPPINGS[platformRegion.toLowerCase() as PlatformRegion];
   
   if (!region) {
     throw new Error(`Invalid region: ${platformRegion}`);
@@ -35,27 +50,29 @@ async function getMatchData(gameName, tagLine, platformRegion = "oce") {
 
   // 1. Get PUUID from gameName + tagLine (Account-v1 uses 3 regions: americas, asia, europe)
   const accountUrl = `https://${region.account}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
-  const account = await axios.get(accountUrl, {
+  const accountResponse = await axios.get<RiotAccount>(accountUrl, {
     headers: { "X-Riot-Token": RIOT_API_KEY },
   });
 
-  const puuid = account.data.puuid;
+  const puuid = accountResponse.data.puuid;
 
   // 2. Get recent match IDs (Match-v5 supports sea as well)
   const matchListUrl = `https://${region.match}.api.riotgames.com/lol/match/v5/matches/by-puuid/${puuid}/ids?count=1`;
-  const matchIds = await axios.get(matchListUrl, {
+  const matchIdsResponse = await axios.get<string[]>(matchListUrl, {
     headers: { "X-Riot-Token": RIOT_API_KEY },
   });
 
-  const matchId = matchIds.data[0];
+  const matchId = matchIdsResponse.data[0];
+
+  if (!matchId) {
+    throw new Error("No matches found for this player");
+  }
 
   // 3. Get match details
   const matchUrl = `https://${region.match}.api.riotgames.com/lol/match/v5/matches/${matchId}`;
-  const match = await axios.get(matchUrl, {
+  const matchResponse = await axios.get<RiotMatchData>(matchUrl, {
     headers: { "X-Riot-Token": RIOT_API_KEY },
   });
 
-  return match.data;
+  return matchResponse.data;
 }
-
-module.exports = { getMatchData };
