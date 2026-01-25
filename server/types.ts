@@ -24,10 +24,7 @@ export interface Participant {
   // Champion & Role
   championId: number;
   championName: string;
-  teamPosition: string; // TOP, JUNGLE, MIDDLE, BOTTOM, UTILITY
-  individualPosition: string;
-  role: string;
-  lane: string;
+  teamPosition: string;
   
   // Core Stats
   kills: number;
@@ -43,9 +40,6 @@ export interface Participant {
   // Damage
   totalDamageDealtToChampions: number;
   totalDamageTaken: number;
-  magicDamageDealtToChampions: number;
-  physicalDamageDealtToChampions: number;
-  trueDamageDealtToChampions: number;
   
   // Vision
   visionScore: number;
@@ -62,52 +56,9 @@ export interface Participant {
   item5: number;
   item6: number;
   
-  // Summoner Spells
-  summoner1Id: number;
-  summoner2Id: number;
-  
-  // Perks/Runes
-  perks: {
-    styles: PerkStyle[];
-  };
-  
-  // Objectives
-  challenges?: {
-    kda: number;
-    killParticipation: number;
-    damagePerMinute: number;
-    goldPerMinute: number;
-    [key: string]: number | undefined;
-  };
-  
   // Win/Loss
   win: boolean;
   teamId: number;
-  
-  // Timestamps
-  firstBloodKill: boolean;
-  firstTowerKill: boolean;
-  
-  // Other useful stats
-  doubleKills: number;
-  tripleKills: number;
-  quadraKills: number;
-  pentaKills: number;
-  longestTimeSpentLiving: number;
-  timeCCingOthers: number;
-}
-
-export interface PerkStyle {
-  description: string;
-  selections: PerkSelection[];
-  style: number;
-}
-
-export interface PerkSelection {
-  perk: number;
-  var1: number;
-  var2: number;
-  var3: number;
 }
 
 export interface Team {
@@ -115,23 +66,14 @@ export interface Team {
   win: boolean;
   objectives: {
     baron: ObjectiveStat;
-    champion: ObjectiveStat;
     dragon: ObjectiveStat;
-    inhibitor: ObjectiveStat;
-    riftHerald: ObjectiveStat;
     tower: ObjectiveStat;
   };
-  bans: Ban[];
 }
 
 export interface ObjectiveStat {
   first: boolean;
   kills: number;
-}
-
-export interface Ban {
-  championId: number;
-  pickTurn: number;
 }
 
 // Regional mapping types
