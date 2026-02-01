@@ -80,6 +80,7 @@ export interface ObjectiveStat {
 export interface RegionConfig {
   account: "americas" | "asia" | "europe";
   match: "americas" | "asia" | "europe" | "sea";
+  platform: string; // e.g., "na1", "euw1", "oc1"
 }
 
 export type PlatformRegion = 
@@ -87,3 +88,75 @@ export type PlatformRegion =
   | "euw" | "eune" | "tr" | "ru"
   | "kr" | "jp"
   | "oce" | "ph" | "sg" | "th" | "tw" | "vn";
+
+// Summoner data from SUMMONER-V4
+export interface SummonerData {
+  id: string; // Encrypted summoner ID
+  accountId: string;
+  puuid: string;
+  profileIconId: number;
+  revisionDate: number;
+  summonerLevel: number;
+}
+
+// Rank data from LEAGUE-V4
+export interface RankData {
+  leagueId: string;
+  queueType: string; // "RANKED_SOLO_5x5" | "RANKED_FLEX_SR"
+  tier: string; // "IRON" | "BRONZE" | "SILVER" | "GOLD" | "PLATINUM" | "EMERALD" | "DIAMOND" | "MASTER" | "GRANDMASTER" | "CHALLENGER"
+  rank: string; // "I" | "II" | "III" | "IV"
+  summonerId: string;
+  leaguePoints: number;
+  wins: number;
+  losses: number;
+  veteran: boolean;
+  inactive: boolean;
+  freshBlood: boolean;
+  hotStreak: boolean;
+}
+
+// Profile response interface
+export interface ProfileData {
+  summoner: {
+    gameName: string;
+    tagLine: string;
+    level: number;
+    profileIconId: number;
+  };
+  rank: {
+    tier: string;
+    rank: string;
+    lp: number;
+    wins: number;
+    losses: number;
+    winRate: number;
+  } | null;
+  overallStats: {
+    totalGames: number;
+    winRate: number;
+    avgKDA: number;
+  };
+  recentChampions: Array<{
+    championName: string;
+    games: number;
+    wins: number;
+    winRate: number;
+  }>;
+  recentMatches: Array<{
+    matchId: string;
+    championName: string;
+    role: string;
+    win: boolean;
+    kills: number;
+    deaths: number;
+    assists: number;
+    kda: number;
+    cs: number;
+    csPerMin: number;
+    visionScore: number;
+    damage: number;
+    gold: number;
+    gameDuration: number;
+    timeAgo: string;
+  }>;
+}

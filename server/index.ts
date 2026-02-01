@@ -1,7 +1,7 @@
 import "dotenv/config";
 import express, { Request, Response } from "express";
 import cors from "cors";
-import { getMatchData } from "./riot";
+import { getMatchData, getProfileData } from "./riot";
 import { PlatformRegion } from "./types";
 import { loadItemData, getItemName } from "./items";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -19,6 +19,34 @@ interface AnalyzeRequestBody {
   region: PlatformRegion;
 }
 
+interface ProfileRequestBody {
+  gameName: string;
+  tagLine: string;
+  region: PlatformRegion;
+  matchCount?: number;
+}
+
+// Profile endpoint - Step 2 of user flow
+app.post("/api/profile", async (req: Request<{}, {}, ProfileRequestBody>, res: Response) => {
+  try {
+    const { gameName, tagLine, region, matchCount = 10 } = req.body;
+    
+    if (!gameName || !tagLine || !region) {
+      res.status(400).json({ 
+        error: "Missing required fields: gameName, tagLine, region" 
+      });
+      return;
+    }
+    
+    const profileData = await getProfileData(gameName, tagLine, region, matchCount);
+    res.json(profileData);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    res.status(500).json({ error: errorMessage });
+  }
+});
+
+// Analyze endpoint - Step 4 of user flow (single match analysis for now)
 app.post("/api/analyze", async (req: Request<{}, {}, AnalyzeRequestBody>, res: Response) => {
   try {
     const { gameName, tagLine, region } = req.body;
@@ -63,7 +91,7 @@ app.post("/api/analyze", async (req: Request<{}, {}, AnalyzeRequestBody>, res: R
       .filter(id => id !== 0)
       .map(id => getItemName(id));
 
-      // Step 4: Build AI prompt
+    // Step 4: Build AI prompt
     const prompt = `You are a League of Legends coach. Analyze this match performance and provide concise, actionable feedback.
     **Match Details:**
     - Champion: ${player.championName}
@@ -94,8 +122,7 @@ app.post("/api/analyze", async (req: Request<{}, {}, AnalyzeRequestBody>, res: R
     2. [Specific actionable drill]
     3. [Specific actionable drill]
 
-    Keep it direct and actionable. Use the numbers provided.`
-
+    Keep it direct and actionable. Use the numbers provided.`;
 
     // Step 5: Get AI analysis
     const result = await model.generateContent(prompt);
