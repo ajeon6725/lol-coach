@@ -1,6 +1,7 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
 import './App.css';
 import ProfilePage from './components/ProfilePage/ProfilePage';
+import Dashboard from './components/Dashboard/Dashboard';
 
 type Region = 'oce' | 'na' | 'euw' | 'eune' | 'kr' | 'jp' | 'br' | 'lan' | 'las' | 'tr' | 'ru';
 
@@ -11,6 +12,12 @@ function App() {
   const [gameName, setGameName] = useState<string>('');
   const [tagLine, setTagLine] = useState<string>('');
   const [region, setRegion] = useState<Region>('oce');
+  const [selectedFilters, setSelectedFilters] = useState({
+    champion: "all",
+    role: "all",
+    matchCount: 20,
+    matches: [] as any[],
+  });
 
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -19,14 +26,9 @@ function App() {
     }
   };
 
-  const handleGetAnalysis = () => {
+  const handleGetAnalysis = (filteredMatches: any[]) => {
+    setSelectedFilters(prev => ({ ...prev, matches: filteredMatches }));
     setStep('analysis');
-  };
-
-  const handleBackToSearch = () => {
-    setStep('search');
-    setGameName('');
-    setTagLine('');
   };
 
   return (
@@ -75,28 +77,22 @@ function App() {
 
       {/* Step 2: Profile */}
       {step === 'profile' && (
-        <>
-          <button className="back-button" onClick={handleBackToSearch}>
-            ← Back to Search
-          </button>
-          <ProfilePage
-            gameName={gameName}
-            tagLine={tagLine}
-            region={region}
-            onGetAnalysis={handleGetAnalysis}
-          />
-        </>
+        <ProfilePage
+          gameName={gameName}
+          tagLine={tagLine}
+          region={region}
+          onGetAnalysis={handleGetAnalysis}
+        />
       )}
 
-      {/* Step 3: Analysis (placeholder for now) */}
       {step === 'analysis' && (
-        <>
-          <button className="back-button" onClick={() => setStep('profile')}>
-            ← Back to Profile
-          </button>
-          <h1>Analysis Configuration</h1>
-          <p>Step 3 - To be implemented next</p>
-        </>
+        <Dashboard
+          gameName={gameName}
+          tagLine={tagLine}
+          region={region}
+          filteredMatches={selectedFilters.matches}
+          onBack={() => setStep('profile')}
+        />
       )}
     </div>
   );

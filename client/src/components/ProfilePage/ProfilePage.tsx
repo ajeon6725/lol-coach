@@ -50,7 +50,7 @@ interface ProfilePageProps {
   gameName: string;
   tagLine: string;
   region: string;
-  onGetAnalysis: () => void;
+  onGetAnalysis: (matches: ProfileData['recentMatches']) => void;
 }
 
 export default function ProfilePage({
@@ -295,7 +295,7 @@ export default function ProfilePage({
           {selectedChampion !== "all" ? selectedChampion : ""}
           {selectedRole !== "all" ? ` ${selectedRole}` : ""} games
         </p>
-        <button className="cta-button" onClick={onGetAnalysis}>
+        <button className="cta-button" onClick={() => onGetAnalysis(filteredMatches)}>
           Get AI Analysis
         </button>
       </section>
