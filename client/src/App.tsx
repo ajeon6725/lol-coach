@@ -1,5 +1,5 @@
 import { useState, FormEvent, ChangeEvent } from 'react';
-import ProfilePage from './components/ProfilePage/ProfilePage';
+import ProfilePage from './components/ProfilePage';
 import Dashboard from './components/Dashboard/Dashboard';
 
 type Region = 'oce' | 'na' | 'euw' | 'eune' | 'kr' | 'jp' | 'br' | 'lan' | 'las' | 'tr' | 'ru';
