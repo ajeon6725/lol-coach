@@ -141,9 +141,9 @@ export default function ProfilePage({
     <div className="min-h-screen bg-dark p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
-        <header className="bg-card border-2 border-primary/30 rounded-2xl p-6 md:p-8 mb-8">
-          <div className="absolute inset-0 bg-black/20"></div>
-          <div className="flex flex-col md:flex-row items-center gap-6">
+        <header className="bg-card border-2 border-primary/30 rounded-2xl p-6 md:p-8 mb-8 relative">
+          <div className="absolute inset-0 bg-black/20 rounded-2xl pointer-events-none"></div>
+          <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
             <img
               src={iconUrl}
               alt="Summoner Icon"
@@ -183,11 +183,15 @@ export default function ProfilePage({
           <h2 className="font-display text-xl font-bold text-light mb-4">
             Recently Played
           </h2>
-          <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+          <div className="flex gap-4 overflow-x-auto py-2 px-2 -mx-2">
             {profile.recentChampions.map((champ) => (
               <div
                 key={champ.championName}
-                className="bg-card border border-border rounded-lg p-3 hover:border-primary hover:scale-105 transition-all cursor-pointer flex-shrink-0 w-28"
+                className={`bg-card border rounded-lg p-3 hover:scale-105 transition-all cursor-pointer flex-shrink-0 w-28 ${
+                  selectedChampion === champ.championName
+                    ? "border-primary border-2 shadow-lg shadow-primary/20"
+                    : "border-border hover:border-primary"
+                }`}
                 onClick={() => setSelectedChampion(champ.championName)}
               >
                 <img
