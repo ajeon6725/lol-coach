@@ -151,7 +151,8 @@ export default function ProfilePage({
             />
             <div className="flex-1 text-center md:text-left">
               <h1 className="font-display text-3xl md:text-4xl font-bold text-white mb-1">
-                {profile.summoner.gameName}#{profile.summoner.tagLine}
+                {profile.summoner.gameName}
+                <span className="text-muted">#{profile.summoner.tagLine}</span>
               </h1>
               <p className="text-white/90">Level {profile.summoner.level}</p>
             </div>

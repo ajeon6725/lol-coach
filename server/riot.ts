@@ -1,11 +1,11 @@
 import axios from "axios";
-import { 
-  RiotMatchData, 
-  RegionConfig, 
-  PlatformRegion, 
-  SummonerData, 
-  RankData, 
-  ProfileData 
+import {
+  RiotMatchData,
+  RegionConfig,
+  PlatformRegion,
+  SummonerData,
+  RankData,
+  ProfileData,
 } from "./types";
 
 const RIOT_API_KEY = process.env.RIOT_API_KEY;
@@ -21,15 +21,15 @@ const REGION_MAPPINGS: Record<PlatformRegion, RegionConfig> = {
   br: { account: "americas", match: "americas", platform: "br1" },
   lan: { account: "americas", match: "americas", platform: "la1" },
   las: { account: "americas", match: "americas", platform: "la2" },
-  
+
   euw: { account: "europe", match: "europe", platform: "euw1" },
   eune: { account: "europe", match: "europe", platform: "eun1" },
   tr: { account: "europe", match: "europe", platform: "tr1" },
   ru: { account: "europe", match: "europe", platform: "ru" },
-  
+
   kr: { account: "asia", match: "asia", platform: "kr" },
   jp: { account: "asia", match: "asia", platform: "jp1" },
-  
+
   oce: { account: "asia", match: "sea", platform: "oc1" },
   ph: { account: "asia", match: "sea", platform: "ph2" },
   sg: { account: "asia", match: "sea", platform: "sg2" },
@@ -47,10 +47,11 @@ interface RiotAccount {
 export async function getMatchData(
   gameName: string,
   tagLine: string,
-  platformRegion: PlatformRegion = "oce"
+  platformRegion: PlatformRegion = "oce",
 ): Promise<RiotMatchData> {
-  const region = REGION_MAPPINGS[platformRegion.toLowerCase() as PlatformRegion];
-  
+  const region =
+    REGION_MAPPINGS[platformRegion.toLowerCase() as PlatformRegion];
+
   if (!region) {
     throw new Error(`Invalid region: ${platformRegion}`);
   }
@@ -91,10 +92,11 @@ export async function getProfileData(
   gameName: string,
   tagLine: string,
   platformRegion: PlatformRegion = "oce",
-  matchCount: number = 10
+  matchCount: number = 10,
 ): Promise<ProfileData> {
-  const region = REGION_MAPPINGS[platformRegion.toLowerCase() as PlatformRegion];
-  
+  const region =
+    REGION_MAPPINGS[platformRegion.toLowerCase() as PlatformRegion];
+
   if (!region) {
     throw new Error(`Invalid region: ${platformRegion}`);
   }
@@ -109,12 +111,12 @@ export async function getProfileData(
 
     // Step 2: Get summoner data (level, icon) - Note: summonerId removed from API in 2025
     const summonerUrl = `https://${region.platform}.api.riotgames.com/lol/summoner/v4/summoners/by-puuid/${puuid}`;
-    console.log('Fetching summoner data from:', summonerUrl);
+    console.log("Fetching summoner data from:", summonerUrl);
     const summonerResponse = await axios.get<SummonerData>(summonerUrl, {
       headers: { "X-Riot-Token": RIOT_API_KEY },
     });
     const summonerData = summonerResponse.data;
-    console.log('Summoner data received:', summonerData);
+    console.log("Summoner data received:", summonerData);
 
     // Step 3: Fetch rank by PUUID (LEAGUE-V4)
     const leagueUrl = `https://${region.platform}.api.riotgames.com/lol/league/v4/entries/by-puuid/${puuid}`;
@@ -123,7 +125,7 @@ export async function getProfileData(
     });
 
     const soloQueue = leagueResponse.data.find(
-      (entry) => entry.queueType === "RANKED_SOLO_5x5"
+      (entry) => entry.queueType === "RANKED_SOLO_5x5",
     );
 
     const rankData = soloQueue ?? null;
@@ -159,19 +161,20 @@ export async function getProfileData(
 
       // Add delay between batches (except for last batch)
       if (i + batchSize < matchIds.length) {
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
       }
     }
 
     // Step 6: Process match data
     const recentMatches = matches.map((match) => {
-      const player = match.info.participants.find(p => p.puuid === puuid)!;
+      const player = match.info.participants.find((p) => p.puuid === puuid)!;
       const totalCS = player.totalMinionsKilled + player.neutralMinionsKilled;
       const gameDurationMin = Math.floor(match.info.gameDuration / 60);
       const csPerMin = gameDurationMin > 0 ? totalCS / gameDurationMin : 0;
-      const kda = player.deaths === 0 
-        ? player.kills + player.assists 
-        : (player.kills + player.assists) / player.deaths;
+      const kda =
+        player.deaths === 0
+          ? player.kills + player.assists
+          : (player.kills + player.assists) / player.deaths;
 
       const timeAgo = getTimeAgo(match.info.gameEndTimestamp);
 
@@ -196,15 +199,19 @@ export async function getProfileData(
 
     // Step 7: Calculate overall stats
     const totalGames = recentMatches.length;
-    const totalWins = recentMatches.filter(m => m.win).length;
+    const totalWins = recentMatches.filter((m) => m.win).length;
     const winRate = totalGames > 0 ? (totalWins / totalGames) * 100 : 0;
-    
-    const avgKDA = recentMatches.reduce((sum, m) => sum + m.kda, 0) / totalGames;
+
+    const avgKDA =
+      recentMatches.reduce((sum, m) => sum + m.kda, 0) / totalGames;
 
     // Step 8: Calculate champion stats
     const championMap = new Map<string, { games: number; wins: number }>();
     recentMatches.forEach((match) => {
-      const current = championMap.get(match.championName) || { games: 0, wins: 0 };
+      const current = championMap.get(match.championName) || {
+        games: 0,
+        wins: 0,
+      };
       current.games++;
       if (match.win) current.wins++;
       championMap.set(match.championName, current);
@@ -222,19 +229,26 @@ export async function getProfileData(
 
     return {
       summoner: {
-        gameName,
-        tagLine,
+        gameName: accountResponse.data.gameName, 
+        tagLine: accountResponse.data.tagLine, 
         level: summonerData.summonerLevel,
         profileIconId: summonerData.profileIconId,
       },
-      rank: rankData ? {
-        tier: rankData.tier,
-        rank: rankData.rank,
-        lp: rankData.leaguePoints,
-        wins: rankData.wins,
-        losses: rankData.losses,
-        winRate: parseFloat(((rankData.wins / (rankData.wins + rankData.losses)) * 100).toFixed(1)),
-      } : null,
+      rank: rankData
+        ? {
+            tier: rankData.tier,
+            rank: rankData.rank,
+            lp: rankData.leaguePoints,
+            wins: rankData.wins,
+            losses: rankData.losses,
+            winRate: parseFloat(
+              (
+                (rankData.wins / (rankData.wins + rankData.losses)) *
+                100
+              ).toFixed(1),
+            ),
+          }
+        : null,
       overallStats: {
         totalGames,
         winRate: parseFloat(winRate.toFixed(1)),
@@ -245,7 +259,9 @@ export async function getProfileData(
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      throw new Error(`Riot API Error: ${error.response?.data?.status?.message || error.message}`);
+      throw new Error(
+        `Riot API Error: ${error.response?.data?.status?.message || error.message}`,
+      );
     }
     throw error;
   }
