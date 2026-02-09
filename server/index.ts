@@ -26,6 +26,22 @@ interface ProfileRequestBody {
   matchCount?: number;
 }
 
+interface CoachChatRequestBody {
+  message: string;
+  conversationHistory: Array<{ role: string; content: string }>;
+  playerContext: {
+    championName: string;
+    role: string;
+    stats: {
+      avgCS: number;
+      avgKDA: number;
+      avgVision: number;
+      avgDeaths: number;
+    };
+    matches: any[];
+  };
+}
+
 // Profile endpoint - Step 2 of user flow
 app.post(
   "/api/profile",
@@ -262,6 +278,54 @@ Be direct, use the numbers provided, focus on actionable improvements.`;
       res.status(500).json({ error: errorMessage });
     }
   },
+);
+
+app.post(
+  "/api/coach-chat",
+  async (req: Request<{}, {}, CoachChatRequestBody>, res: Response) => {
+    try {
+      const { message, conversationHistory, playerContext } = req.body;
+
+      if (!message || !playerContext) {
+        res.status(400).json({ error: "Missing required fields" });
+        return;
+      }
+
+      // Build context-aware prompt
+      const systemContext = `You are an expert League of Legends coach having a conversation with a player.
+
+**Player Context:**
+- Champion: ${playerContext.championName} ${playerContext.role}
+- Average CS/min: ${playerContext.stats.avgCS.toFixed(1)} (target: 7.0)
+- Average KDA: ${playerContext.stats.avgKDA.toFixed(2)}
+- Average Vision Score: ${playerContext.stats.avgVision.toFixed(1)}
+- Average Deaths: ${playerContext.stats.avgDeaths.toFixed(1)}
+- Recent Matches: ${playerContext.matches.length} games analyzed
+
+**Your coaching style:**
+- Conversational and supportive, not robotic
+- Reference specific numbers from their stats when relevant
+- Ask follow-up questions to understand root causes
+- Give actionable, specific advice (not generic tips)
+- Keep responses concise (2-4 sentences unless explaining a complex drill)
+
+**Conversation so far:**
+${conversationHistory.map(msg => `${msg.role === "coach" ? "Coach" : "Player"}: ${msg.content}`).join("\n")}
+
+Player's latest message: "${message}"
+
+Respond as the coach:`;
+
+      const result = await model.generateContent(systemContext);
+      const reply = result.response.text();
+
+      res.json({ reply });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Chat failed";
+      res.status(500).json({ error: errorMessage });
+    }
+  }
 );
 
 const startServer = async () => {
