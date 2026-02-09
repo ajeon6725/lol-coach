@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import HeroPriorityCard from "./HeroPriorityCard"
-import ChatSection from "../ChatSection";
+import ChatSection from "./ChatSection";
 import SecondaryInsights from "./SecondaryInsights";
 import StatCard from "./StatCard";
 import MatchCard from "./MatchCard";
