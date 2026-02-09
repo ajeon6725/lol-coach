@@ -22,7 +22,12 @@ interface AnalysisResponse {
     avgVision: number;
     avgDeaths: number;
   };
-  analysis: string;
+  analysis: {
+    criticalIssues: Array<{ title: string; description: string }>;
+    areasToImprove: Array<{ title: string; description: string }>;
+    strengths: Array<{ title: string; description: string }>;
+    weeklyFocus: Array<{ drill: string }>;
+  };
   matches: any[];
 }
 
@@ -65,8 +70,10 @@ export default function Dashboard({
       }
 
       const data: AnalysisResponse = await response.json();
+      console.log("Analysis data received:", data); // Debug log
       setAnalysisData(data);
     } catch (err) {
+      console.error("Fetch error:", err); // Debug log
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);

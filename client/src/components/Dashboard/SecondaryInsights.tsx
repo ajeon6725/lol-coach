@@ -1,5 +1,9 @@
 interface SecondaryInsightsProps {
-  analysis: string;
+  analysis: {
+    criticalIssues: Array<{ title: string; description: string }>;
+    areasToImprove: Array<{ title: string; description: string }>;
+    strengths: Array<{ title: string; description: string }>;
+  };
 }
 
 interface InsightCardProps {
@@ -10,29 +14,38 @@ interface InsightCardProps {
 }
 
 export default function SecondaryInsights({ analysis }: SecondaryInsightsProps) {
-  // TODO: Parse analysis text to extract actual insights
-  // For now, using placeholder data
-  
+  // Map AI insights to cards - prioritize issues over strengths
+  const insights: InsightCardProps[] = [
+    // 1 critical issue (most important)
+    ...analysis.criticalIssues.slice(0, 1).map(c => ({
+      icon: "🔴",
+      title: c.title,
+      description: c.description,
+      variant: "danger" as const
+    })),
+    
+    // 1 area to improve
+    ...analysis.areasToImprove.slice(0, 1).map(a => ({
+      icon: "⚠️",
+      title: a.title,
+      description: a.description,
+      variant: "warning" as const
+    })),
+    
+    // 1 strength (positive reinforcement last)
+    ...analysis.strengths.slice(0, 1).map(s => ({
+      icon: "✅",
+      title: s.title,
+      description: s.description,
+      variant: "success" as const
+    }))
+  ];
+
   return (
     <div className="grid md:grid-cols-3 gap-4 mb-8">
-      <InsightCard
-        icon="✅"
-        title="Strong Teamfight Presence"
-        description="68% kill participation is excellent. You're showing up when it matters."
-        variant="success"
-      />
-      <InsightCard
-        icon="🔴"
-        title="Vision Control Issues"
-        description="Only buying control wards in 40% of games. This is getting you killed."
-        variant="danger"
-      />
-      <InsightCard
-        icon="⚠️"
-        title="Itemization Timing"
-        description="Completing core items 2min slower than average. Focus on efficient recalls."
-        variant="warning"
-      />
+      {insights.map((insight, i) => (
+        <InsightCard key={i} {...insight} />
+      ))}
     </div>
   );
 }

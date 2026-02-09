@@ -71,118 +71,6 @@ app.post(
   },
 );
 
-// Analyze endpoint - Step 4 of user flow (single match analysis for now)
-app.post(
-  "/api/analyze",
-  async (req: Request<{}, {}, AnalyzeRequestBody>, res: Response) => {
-    try {
-      const { gameName, tagLine, region } = req.body;
-
-      if (!gameName || !tagLine || !region) {
-        res.status(400).json({
-          error: "Missing required fields: gameName, tagLine, region",
-        });
-        return;
-      }
-
-      // Step 1: Get match data from Riot API
-      const matchData = await getMatchData(gameName, tagLine, region);
-
-      // Step 2: Extract player's stats
-      const player = matchData.info.participants.find(
-        (p) =>
-          p.riotIdGameName.toLowerCase() === gameName.toLowerCase() &&
-          p.riotIdTagline.toLowerCase() === tagLine.toLowerCase(),
-      );
-
-      if (!player) {
-        res.status(404).json({ error: "Player not found in match data" });
-        return;
-      }
-
-      // Step 3: Calculate key metrics
-      const totalCS = player.totalMinionsKilled + player.neutralMinionsKilled;
-      const gameDurationMin = Math.floor(matchData.info.gameDuration / 60);
-      const csPerMin = (totalCS / gameDurationMin).toFixed(1);
-      const kda =
-        player.deaths === 0
-          ? "Perfect"
-          : ((player.kills + player.assists) / player.deaths).toFixed(1);
-      const items = [
-        player.item0,
-        player.item1,
-        player.item2,
-        player.item3,
-        player.item4,
-        player.item5,
-        player.item6,
-      ]
-        .filter((id) => id !== 0)
-        .map((id) => getItemName(id));
-
-      // Step 4: Build AI prompt
-      const prompt = `You are a League of Legends coach. Analyze this match performance and provide concise, actionable feedback.
-    **Match Details:**
-    - Champion: ${player.championName}
-    - Role: ${player.teamPosition}
-    - Result: ${player.win ? "Victory" : "Defeat"}
-    - KDA: ${player.kills}/${player.deaths}/${player.assists} (${kda} KDA)
-    - CS: ${totalCS} (${csPerMin}/min) in ${gameDurationMin} minutes
-    - Vision Score: ${player.visionScore}
-    - Damage to Champions: ${player.totalDamageDealtToChampions.toLocaleString()}
-    - Gold Earned: ${player.goldEarned.toLocaleString()}
-
-    **Items Built:**
-    ${items.join(", ") || "None"}
-
-    Provide feedback in this EXACT format:
-
-    🔴 **Critical Issues:**
-    - [2-3 specific problems with numbers]
-
-    ⚠️ **Build/Strategy Notes:**
-    - [Comments on itemization or gameplay decisions]
-
-    ✅ **What You Did Well:**
-    - [2-3 positive points]
-
-    💡 **Focus This Week:**
-    1. [Specific actionable drill]
-    2. [Specific actionable drill]
-    3. [Specific actionable drill]
-
-    Keep it direct and actionable. Use the numbers provided.`;
-
-      // Step 5: Get AI analysis
-      const result = await model.generateContent(prompt);
-      const analysis = result.response.text();
-
-      // Step 6: Return everything to frontend
-      res.json({
-        matchData,
-        playerStats: {
-          championName: player.championName,
-          role: player.teamPosition,
-          win: player.win,
-          kills: player.kills,
-          deaths: player.deaths,
-          assists: player.assists,
-          kda,
-          cs: totalCS,
-          csPerMin,
-          visionScore: player.visionScore,
-          gameDuration: gameDurationMin,
-        },
-        analysis,
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      res.status(500).json({ error: errorMessage });
-    }
-  },
-);
-
 interface MultiAnalyzeRequestBody {
   gameName: string;
   tagLine: string;
@@ -230,34 +118,92 @@ app.post(
 
 **Individual Match Data:**
 ${matches
-  .slice(0, 10)
-  .map(
-    (m, i) =>
-      `Game ${i + 1}: ${m.win ? "W" : "L"} | ${m.kills}/${m.deaths}/${m.assists} | ${m.csPerMin} CS/min | Vision: ${m.visionScore}`,
-  )
-  .join("\n")}
+          .slice(0, 10)
+          .map(
+            (m, i) =>
+              `Game ${i + 1}: ${m.win ? "W" : "L"} | ${m.kills}/${m.deaths}/${m.assists} | ${m.csPerMin} CS/min | Vision: ${m.visionScore}`,
+          )
+          .join("\n")}
 
-Provide coaching feedback in this EXACT format:
+Respond ONLY with valid JSON (no markdown, no backticks, no preamble) in this exact structure:
 
-🔴 **Critical Issues** (2-3 points with specific numbers)
-- [Issue with data]
+{
+  "criticalIssues": [
+    {
+      "title": "Short title (e.g., CS Deficit)",
+      "description": "Specific issue with numbers and impact"
+    }
+  ],
+  "areasToImprove": [
+    {
+      "title": "Short title",
+      "description": "Improvement area with context"
+    }
+  ],
+  "strengths": [
+    {
+      "title": "Short title",
+      "description": "What they're doing well"
+    }
+  ],
+  "weeklyFocus": [
+    {
+      "drill": "Specific drill with measurable goal"
+    }
+  ]
+}
 
-⚠️ **Areas to Improve** (2-3 points)
-- [Improvement area]
-
-✅ **What You're Doing Well** (2-3 points)
-- [Strength]
-
-💡 **This Week's Focus** (3 specific drills)
-1. [Drill with measurable goal]
-2. [Drill with measurable goal]
-3. [Drill with measurable goal]
-
-Be direct, use the numbers provided, focus on actionable improvements.`;
+Requirements:
+- 2-3 items per category
+- Use specific numbers from the data
+- Be direct and actionable
+- Focus on highest-impact improvements first`;
 
       // Step 3: Get AI analysis
       const result = await model.generateContent(prompt);
-      const analysis = result.response.text();
+      const responseText = result.response.text();
+
+      console.log("Raw AI response:", responseText); // Debug log
+
+      // Parse JSON (strip markdown fences if present)
+      let analysisJson;
+      try {
+        const cleanedText = responseText
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+        analysisJson = JSON.parse(cleanedText);
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError);
+        console.error("Cleaned text:", responseText);
+        
+        // Fallback: return structured placeholder
+        analysisJson = {
+          criticalIssues: [
+            {
+              title: "CS Deficit",
+              description: `Average CS/min is ${avgCS.toFixed(1)} (target: 7.0). Missing ~${Math.round((7.0 - avgCS) * 30)} CS per game.`
+            }
+          ],
+          areasToImprove: [
+            {
+              title: "Vision Control",
+              description: `Average vision score: ${avgVision.toFixed(1)}. Need to prioritize control wards.`
+            }
+          ],
+          strengths: [
+            {
+              title: "Win Rate",
+              description: `${winRate.toFixed(1)}% win rate shows you're contributing to victories.`
+            }
+          ],
+          weeklyFocus: [
+            { drill: "Practice CS drills in practice tool: 75 CS by 10min" },
+            { drill: "Buy 2 control wards every recall" },
+            { drill: "Review death timers to identify positioning mistakes" }
+          ]
+        };
+      }
 
       // Step 4: Return response
       res.json({
@@ -269,8 +215,8 @@ Be direct, use the numbers provided, focus on actionable improvements.`;
           avgVision: parseFloat(avgVision.toFixed(1)),
           avgDeaths: parseFloat(avgDeaths.toFixed(1)),
         },
-        analysis,
-        matches, // Return matches for display
+        analysis: analysisJson,
+        matches,
       });
     } catch (error) {
       const errorMessage =
@@ -310,7 +256,7 @@ app.post(
 - Keep responses concise (2-4 sentences unless explaining a complex drill)
 
 **Conversation so far:**
-${conversationHistory.map(msg => `${msg.role === "coach" ? "Coach" : "Player"}: ${msg.content}`).join("\n")}
+${conversationHistory.map((msg) => `${msg.role === "coach" ? "Coach" : "Player"}: ${msg.content}`).join("\n")}
 
 Player's latest message: "${message}"
 
@@ -325,7 +271,7 @@ Respond as the coach:`;
         error instanceof Error ? error.message : "Chat failed";
       res.status(500).json({ error: errorMessage });
     }
-  }
+  },
 );
 
 const startServer = async () => {
